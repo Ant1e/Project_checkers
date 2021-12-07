@@ -1,4 +1,3 @@
-# I want to know the last cell clicked Line 131
 
 import tkinter as tk
 from tkinter import messagebox
@@ -37,6 +36,7 @@ def playerGenerator(board):
                     board[i][j] = 2
     return player1, player2
 
+
 def findPossibleMove(board, x, y):
     nextCells = []
     
@@ -46,6 +46,7 @@ def findPossibleMove(board, x, y):
         for i in range(0,4):
             if nextCells[i][0] > 9 or nextCells[i][1] > 9 or nextCells[i][0] < 0 or nextCells[i][1] < 0:
                 remove.append(nextCells[i])
+            
         for j in remove:
             nextCells.remove(j)
              
@@ -54,36 +55,57 @@ def findPossibleMove(board, x, y):
             cell = nextCells[k]
             if board[cell[0]][cell[1]] == -1 :
                 remove.append(cell)
-            if board[cell[0]][cell[1]] == 1 or board[cell[0]][cell[1]] == 2 :
-                if edible(cell) == False:
-                    remove.append(cell)         
+            elif board[cell[0]][cell[1]] == 1 or board[cell[0]][cell[1]] == 2 :
+                if edible(cell) == False or board[x][y] == board[cell[0]][cell[1]] :
+                    remove.append(cell)   
+                else:
+                    nextCells.append((edible(cell)))
+                    remove.append(cell)
         for j in remove:
             nextCells.remove(j)
         for i in nextCells:
-            board[i[0]][i[1]] = 3
+            board[i[0]][i[1]] = [board[i[0]][i[1]], 3]
     return nextCells
+
+
+def removePossibleCells(board, nextCells):
+    for i in nextCells:
+        board[i[0]][i[1]] = board[i[0]][i[1]][0]
+    
     
 def edible(cell):
     x, y, direction = cell[0], cell[1], cell[2]
-    if direction == 'botRight' and board[x+1][y-1] == 0:
-        return True
-    elif direction == 'topRight' and board[x+1][y+1] == 0:
-        return True
-    elif direction == 'topLeft' and board[x-1][y+1] == 0:
-        return True
-    elif direction == 'botLeft' and board[x-1][y-1] == 0:
-        return True
+    
+    if direction == 'botRight' and board[x+1][y+1] == 0:
+        return x+1,y+1
+    elif direction == 'topRight' and board[x+1][y-1] == 0:
+        return x+1,y-1
+    elif direction == 'topLeft' and board[x-1][y-1] == 0:
+        return x-1,y-1
+    elif direction == 'botLeft' and board[x-1][y+1] == 0:
+        return x-1,y+1
     else:
         return False
+    
               
     
 def findCell(x, y):
     return x//60, y//60
         
-def move(player, oldCell, newCell):
+def move(board, player, oldCell, newCell):
     player[player.index(oldCell)] = newCell
-    print(player)   
+    board[oldCell[0]][oldCell[1]] = 0
+    if player== player1:
+        board[newCell[0]][newCell[1]] = 1
+    elif player== player2:
+        board[newCell[0]][newCell[1]] = 2
+      
     
+def markCell(board, x, y):
+    previousValue = board[x][y]
+    board[x][y] = 4
+    return previousValue
+
 
 def drawPlayer(player1, player2):
     for k in player1:
@@ -114,35 +136,55 @@ def drawPossibleMove(possibleMove, board, player1, player2):
 
 
 
-def register_mouse_click(event, board):
+def register_mouse_click(event, board, player1, player2):
+    
+    
     print("The click was made on the position:", event.x, event.y)
     print("cell coordinate", findCell(event.x, event.y))
     xCell, yCell = findCell(event.x, event.y)
-    #print("next cells", findPossibleMove(board, xCell, yCell))
     nextCells=[]
+    
     for i in range(10):
         for j in range(10):
-            if board[i][j] == 3:
-                nextCells.append((i,j))
-                
+            try:
+                if board[i][j][1] == 3:
+                    nextCells.append((i,j))
+            except:
+                None
+      
+       
+    
     if nextCells == []:
+        print('will draw', nextCells)
         drawPossibleMove(findPossibleMove(board, xCell, yCell), board, player1, player2)
+        markCell(board, xCell, yCell)
+        
+        
+        
     else:
+        removePossibleCells(board, nextCells)
         print('next cells are', nextCells)
-        ######## Here I want to access the last cell clicked ##########
-        '''
-        if (xCell, yCell) in nextCells:
-            #moveMouseClick(event, player1, oldCell)
-            drawBoard(board)
-            drawPlayer(player1, player2)
+        currentCell = -2
+        
+        for i in range(10):
+            for j in range(10):
+                if board[i][j] == 4:
+                    currentCell = (i, j)
+                    board[i][j] = 0
+                    
+        
+        if (xCell, yCell) in nextCells and currentCell != -2:
+            if (xCell, yCell) is not player1:
+                move(board, player1, currentCell, (xCell, yCell))
+                drawBoard(board)
+                drawPlayer(player1, player2)
             
-        '''
+            
+        
+ 
 
+   
     
-    
-def moveMouseClick(event, player, oldCell):
-    xCell, yCell = findCell(event.x, event.y)
-    move(player, oldCell, (xCell, yCell))
     
     
 
@@ -161,7 +203,7 @@ drawPlayer(player1, player2)
 print(board)
 print(player1)
 area.pack(fill="both", expand=True)
-area.bind('<1>',lambda event: register_mouse_click(event, board))
+area.bind('<1>',lambda event: register_mouse_click(event, board, player1, player2))
 
 
 window.mainloop()
